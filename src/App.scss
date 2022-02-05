@@ -1,0 +1,106 @@
+.App {
+  background-color: #161A1E;
+  min-height: 100vh;
+  color: #fff;
+
+  h2 {
+    color: #fff;
+  }
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+.App-header {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  background-color: #161A1E;
+  font-size: calc(10px + 2vmin);
+
+  .label {
+    margin-right: 4px;
+    color: #6aa2f7;
+    font-weight: bold;
+  }
+}
+
+main {
+  display: flex;
+  padding: 16px;
+  background-color: #282c34;
+  aside, article {
+    border: 0.5px solid #525862;
+    padding: 8px;
+  }
+  aside {
+    flex: 2;
+  }
+  article {
+    flex: 3;
+    border-left: none;
+  }
+}
+
+@media (max-width: 767px) {
+  main {
+    flex-direction: column;
+  }
+}
+
+.market-depth {
+  &-label {
+    margin-bottom: 12px;
+  }
+  &-label, &-list .li {
+    display: flex;
+    .item {
+      &:nth-child(1) {
+        flex-basis: 110px;
+      }
+      &:nth-child(2) {
+        flex-basis: 120px;
+        text-align: right;
+      }
+    }
+  }
+  &-list {
+    list-style: none;
+  }
+}
+
+.trade {
+  &-label {
+    margin-bottom: 12px;
+  }
+  &-label, &-list .li {
+    display: flex;
+    .item {
+      &:nth-child(1) {
+        flex-basis: 110px;
+      }
+      &:nth-child(2) {
+        flex-basis: 100px;
+        text-align: right;
+      }
+      &:nth-child(3) {
+        flex-basis: 140px;
+        text-align: right;
+      }
+    }
+  }
+  &-list {
+    max-height: 50vh;
+    overflow: scroll;
+    list-style: none;
+  }
+}
+
+.is-red {
+  color: #F6465D
+}
+.is-green {
+  color: #0EC880;
+}
