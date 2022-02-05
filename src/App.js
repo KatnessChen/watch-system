@@ -1,10 +1,11 @@
 import './App.scss';
 import 'antd/dist/antd.css';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getAllSymbols } from './services/endpoints/market'
 import SymbolSelector from './components/SymbolSelector';
 import TradeList from './components/TradeList';
 import MarketDepth from './components/MarketDepth';
+import { toFixed } from './utils'
 
 function App () {
   const [symbolOptions, setSymbolOptions] = useState([])
@@ -13,6 +14,12 @@ function App () {
   const [aggTradeSocket, setAggTradeSocket] = useState(null)
   const [depthInfo, setDepthInfo] = useState(null)
   const [aggTradeList, setAggTradeList] = useState([])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const closeWebSockets = useCallback(() => {
+    if (depthSocket) depthSocket.close()
+    if (aggTradeSocket) aggTradeSocket.close()
+  })
 
   useEffect(() => {
     async function fetchSymbols () {
@@ -29,7 +36,9 @@ function App () {
     return () => {
       closeWebSockets()
     }
-  }, [depthSocket, aggTradeSocket])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
 
   useEffect(() => {
     closeWebSockets()
@@ -45,40 +54,39 @@ function App () {
       setDepthInfo(JSON.parse(data))
     }
     newAggTradeSocket.onmessage = function ({ data }) {
-      setAggTradeList(cur => [JSON.parse(data), ...cur])
+      const response = JSON.parse(data)
+      document.title = `${toFixed(response.p, 2)} | ${currentSymbol}`
+      setAggTradeList(cur => [response, ...cur])
     }
-    setDepthSocket(newDepthSocket)
-    setAggTradeSocket(newAggTradeSocket)
+    setDepthSocket(() => newDepthSocket)
+    setAggTradeSocket(() => newAggTradeSocket)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSymbol])
 
   function selectSymbolHandler (symbol) {
-    // document.title = `${symbol} |`
+    document.title = symbol
     setCurrentSymbol(symbol)
   }
 
-  function closeWebSockets () {
-    if (depthSocket) depthSocket.close()
-    if (aggTradeSocket) aggTradeSocket.close()
-  }
 
   return (
     <div className="App">
       <header className="App-header">
         <div className="label">Real-time Binance Market Watch System</div>
-      </header>
-      <header className="App-header">
-        <div className="label">Current Symbol:</div>
-        <SymbolSelector options={symbolOptions} onSelect={selectSymbolHandler} />
+        <div className="selector">
+          <div>Current Symbol:</div>
+          <SymbolSelector options={symbolOptions} onSelect={selectSymbolHandler} />
+        </div>
       </header>
       <main>
-        <aside>
+        <div className="depth-block">
           <h2>Market Depth</h2>
           <MarketDepth depthInfo={depthInfo} />
-        </aside>
-        <article>
+        </div>
+        <div className="trade-block">
           <h2>Trade List</h2>
           <TradeList list={aggTradeList} />
-        </article>
+        </div>
       </main>
       
     </div>

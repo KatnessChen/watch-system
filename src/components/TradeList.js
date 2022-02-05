@@ -6,7 +6,7 @@ const TradeList = ({
 }) => {
   return list.length > 0 ? (
     <Fragment>
-      <div class="trade-label">
+      <div className="trade-label">
         <span className="item">Time</span>
         <span className="item">Price</span>
         <span className="item">Quantity</span>
