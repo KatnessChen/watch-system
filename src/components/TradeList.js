@@ -14,7 +14,7 @@ const TradeList = ({
       <ol className="trade-list">
         {list.map((item, index) =>
           <li key={index} className="li">
-            <span className="item">{toTime(item.E)}</span>
+            <span className="item">{toTime(item.T || item.E)}</span>
             <span className="item">{toFixed(item.p, 8)}</span>
             <span className="item">{toFixed(item.q, 5)}</span>
           </li>)

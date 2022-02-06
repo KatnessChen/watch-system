@@ -1,17 +1,11 @@
 import axios from 'axios'
 const request = axios.create({
-  baseURL: 'https://api.binance.com'
+  baseURL: 'https://api.binance.com/api/v3'
 })
 
-
-// 攔截 response
 request.interceptors.response.use(
-  (response) => {
-    return { data: response.data }
-  },
-  async (error) => {
-    return Promise.reject(error)
-  },
+  response => response.data,
+  error => Promise.reject(error),
 )
 
 export default request

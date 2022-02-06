@@ -1,73 +1,94 @@
 import './App.scss';
 import 'antd/dist/antd.css';
-import { useState, useEffect, useCallback } from 'react'
-import { getAllSymbols } from './services/endpoints/market'
+import { useState, useEffect } from 'react'
+import { getAllSymbols, getAggTrade, getMarketDepth } from './services/endpoints/market'
 import SymbolSelector from './components/SymbolSelector';
 import TradeList from './components/TradeList';
 import MarketDepth from './components/MarketDepth';
 import { toFixed } from './utils'
 
+
+
 function App () {
+  const [defaultSymbol] = useState('btcusdc')
   const [symbolOptions, setSymbolOptions] = useState([])
-  const [currentSymbol, setCurrentSymbol] = useState('BTCUSDC')
-  const [depthSocket, setDepthSocket] = useState(null)
-  const [aggTradeSocket, setAggTradeSocket] = useState(null)
+  const [currentSymbol, setCurrentSymbol] = useState(defaultSymbol)
+  const [ws, setWs] = useState(null)
   const [depthInfo, setDepthInfo] = useState(null)
   const [aggTradeList, setAggTradeList] = useState([])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const closeWebSockets = useCallback(() => {
-    if (depthSocket) depthSocket.close()
-    if (aggTradeSocket) aggTradeSocket.close()
-  })
+  function subscribe (ws, symbol) {
+    ws.send(JSON.stringify({
+      method: 'SUBSCRIBE',
+      params: [
+        `${symbol}@aggTrade`,
+        `${symbol}@depth10`
+      ],
+      id: 1
+    }))
+  }
+
+  function unsubscribe (ws, symbol) {
+    ws.send(JSON.stringify({
+      method: 'UNSUBSCRIBE',
+      params: [
+        `${symbol}@aggTrade`,
+        `${symbol}@depth10`
+      ],
+      id: 1
+    }))
+  }
+
+  function initSymbolInfo (symbol) {
+    getAggTrade(symbol)
+      .then(historyAggTradeList => {
+        setAggTradeList(() => historyAggTradeList)
+      })
+    getMarketDepth(symbol)
+      .then(historyDepthInfo => {
+        setDepthInfo(() => historyDepthInfo)
+      })
+  }
 
   useEffect(() => {
-    async function fetchSymbols () {
-      try {
-        const { data: allSymbols } = await getAllSymbols()
-        const symbolOptions = allSymbols.map(item => ({ value: item.symbol, label: item.symbol }))
-        setSymbolOptions(symbolOptions)
-      } catch {
-        // show error message
+    function connectToWs () {
+      const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${defaultSymbol}@aggTrade`)
+      setWs(ws)
+
+      ws.onopen = () => subscribe(ws, defaultSymbol)
+      ws.onmessage = ({ data }) => {
+        const response = JSON.parse(data)
+        if (response.e && response.e === 'aggTrade') {
+          document.title = `${toFixed(response.p, 5)} | ${currentSymbol.toUpperCase()}`
+          setAggTradeList(cur => [response, ...cur])
+        } else if (response.asks && response.bids) {
+          setDepthInfo(() => response)
+        }
       }
     }
-    fetchSymbols()
-
-    return () => {
-      closeWebSockets()
+    async function fetchSymbols () {      
+      const symbolOptions = (await getAllSymbols()).map(item => ({ value: item.symbol.toLowerCase(), label: item.symbol }))
+      setSymbolOptions(symbolOptions)
     }
+
+    try {
+      connectToWs()
+      fetchSymbols()
+      initSymbolInfo(defaultSymbol)
+    } catch {
+      // error
+    }
+    return () => ws && ws.close()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-
-  useEffect(() => {
-    closeWebSockets()
-
-    // clear trade list & depth info
-    setDepthInfo(null)
-    setAggTradeList([])
-
-    const newDepthSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol.toLowerCase()}@depth10`)
-    const newAggTradeSocket = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol.toLowerCase()}@aggTrade`)
-        
-    newDepthSocket.onmessage = function ({ data }) {
-      setDepthInfo(JSON.parse(data))
-    }
-    newAggTradeSocket.onmessage = function ({ data }) {
-      const response = JSON.parse(data)
-      document.title = `${toFixed(response.p, 2)} | ${currentSymbol}`
-      setAggTradeList(cur => [response, ...cur])
-    }
-    setDepthSocket(() => newDepthSocket)
-    setAggTradeSocket(() => newAggTradeSocket)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSymbol])
-
-  function selectSymbolHandler (symbol) {
-    document.title = symbol
-    setCurrentSymbol(symbol)
+  function selectSymbolHandler (selectedSymbol) {
+    initSymbolInfo(selectedSymbol)
+    unsubscribe(ws, currentSymbol)
+    subscribe(ws, selectedSymbol)
+    document.title = selectedSymbol.toUpperCase()
+    setCurrentSymbol(selectedSymbol)
   }
-
 
   return (
     <div className="App">
@@ -75,7 +96,11 @@ function App () {
         <div className="label">Real-time Binance Market Watch System</div>
         <div className="selector">
           <div>Current Symbol:</div>
-          <SymbolSelector options={symbolOptions} onSelect={selectSymbolHandler} />
+          <SymbolSelector
+            defaultValue={defaultSymbol}
+            options={symbolOptions}
+            onSelect={selectSymbolHandler}
+          />
         </div>
       </header>
       <main>

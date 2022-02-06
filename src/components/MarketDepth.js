@@ -1,9 +1,11 @@
 import { toFixed } from '../utils'
 
 const MarketDepth = ({
-  depthInfo
+  depthInfo = null
 }) => {
-  return depthInfo ? (
+  const isValidDepthInfo = depthInfo?.asks?.length > 0 && depthInfo?.bids?.length > 0
+
+  return isValidDepthInfo ? (
     <div className="market-depth">
       <div className="market-depth-label">
         <span className="item">Price</span>

@@ -3,7 +3,7 @@ import { Select } from 'antd';
 const { Option } = Select;
 
 const SymbolSelector = ({
-  defaultValue = 'BTCUSTD',
+  defaultValue = '',
   options = [],
   onSelect
 }) => {
