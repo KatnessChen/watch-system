@@ -1,6 +1,6 @@
 import './App.scss';
 import 'antd/dist/antd.css';
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getAllSymbols, getAggTrade, getMarketDepth } from './services/endpoints/market'
 import SymbolSelector from './components/SymbolSelector';
 import TradeList from './components/TradeList';
@@ -17,7 +17,7 @@ function App () {
   const [depthInfo, setDepthInfo] = useState(null)
   const [aggTradeList, setAggTradeList] = useState([])
 
-  function subscribe (ws, symbol) {
+  const subscribe = useCallback((ws, symbol) => {
     ws.send(JSON.stringify({
       method: 'SUBSCRIBE',
       params: [
@@ -26,9 +26,9 @@ function App () {
       ],
       id: 1
     }))
-  }
+  }, [])
 
-  function unsubscribe (ws, symbol) {
+  const unsubscribe = useCallback((ws, symbol) => {
     ws.send(JSON.stringify({
       method: 'UNSUBSCRIBE',
       params: [
@@ -37,9 +37,9 @@ function App () {
       ],
       id: 1
     }))
-  }
+  }, [])
 
-  function initSymbolInfo (symbol) {
+  const initSymbolInfo = useCallback((symbol) => {
     getAggTrade(symbol)
       .then(historyAggTradeList => {
         setAggTradeList(() => historyAggTradeList)
@@ -48,7 +48,7 @@ function App () {
       .then(historyDepthInfo => {
         setDepthInfo(() => historyDepthInfo)
       })
-  }
+  }, [])
 
   useEffect(() => {
     function connectToWs () {
@@ -82,13 +82,13 @@ function App () {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function selectSymbolHandler (selectedSymbol) {
+  const selectSymbolHandler = useCallback((selectedSymbol) => {
     initSymbolInfo(selectedSymbol)
     unsubscribe(ws, currentSymbol)
     subscribe(ws, selectedSymbol)
     document.title = selectedSymbol.toUpperCase()
     setCurrentSymbol(selectedSymbol)
-  }
+  }, [currentSymbol, initSymbolInfo, subscribe, unsubscribe, ws])
 
   return (
     <div className="App">
